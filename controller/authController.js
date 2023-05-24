@@ -1,7 +1,10 @@
 
 import userModel from "../models/userModel.js"
 import {hashPassword} from '../helper/authHelper.js'
-const registerController = async (req,res)=>{
+import  Jwt  from "jsonwebtoken";
+import { comparePassword } from "../helper/authHelper.js";
+
+export const registerController = async (req,res)=>{
 
     try{
         const {name,email,password,phone,address} = req.body
@@ -61,6 +64,54 @@ const registerController = async (req,res)=>{
     }
 
 }
+export const loginController = async (req,res)=>{
+    
+    try{
+        const {email,password} = req.body
+        
+        if(!email){
+            return res.send({email:"enter valid email"})
+        }
+        if(!password){
+            return res.send({password:"enter valid passeord"})
+        }
+        
+        // existing user
+        const user = await userModel.findOne({email});
+        if(!user){
+            return res.send("user is not registered")
+        }
+        if(!comparePassword(user.password,password)){
+            
+            return res.send("password entered is invalid")
+        }
+        // token
+        const token = await Jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        
+        
+        res.status(200).send({
+            sucess:true,
+            message:"login sucessfully",
+            user:{
+                name: user.name,
+            email: user.email,
+            password: user.password,
+            phone: user.phone,
+            address: user.address
+            },
+            token,
+        });
+
+    }
+    catch(error){
+        console.log("error occured")
+        res.status(500).send({
+            success: false,
+            message: "error in login"
+        })
+
+    }
+}
 
 
-export default registerController
+// export default {registerController,loginController};
